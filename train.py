@@ -11,7 +11,7 @@ import numpy as np
 def get_input_args():
     '''Defines the arguments available to call the script train.py'''
     parser = argparse.ArgumentParser('Arguments for the test.py script')
-    parser.add_argument('--gpu', type= bool, default=True, help='True for training with a GPU, False for training with just the CPU, defaults to True.')
+    parser.add_argument('--gpu', type= str, default='gpu', help='True for training with a GPU, False for training with just the CPU, defaults to True.')
     parser.add_argument('--data_dir', type= str, default='flowers', required = True, help='Directory for data to be used to train our network, defaults to the flowers directory.')
     parser.add_argument('--epochs', type= int, default=3, help='Number of epochs to train our model, defaults to 3.')
     parser.add_argument('--learning_rate', type= float, default=0.001, help='Learning rate to train our model, defaults to 0.001.')
@@ -22,6 +22,7 @@ def get_input_args():
     return args
 
 def load_data(data_dir):
+    
     '''Loads data for training, validation, and testing and applies the corresponding transforms for optimizing our model's performance'''
     train_dir = data_dir + '/train'
     valid_dir = data_dir + '/valid'
@@ -45,14 +46,16 @@ def load_data(data_dir):
     train_dataset = datasets.ImageFolder(train_dir, transform = training_transforms) 
     test_dataset = datasets.ImageFolder(test_dir, transform = test_transforms)
     validation_dataset = datasets.ImageFolder(valid_dir, transform = validation_transforms)
+    
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size = 64, shuffle = True)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size = 64)
     validation_dataloader = torch.utils.data.DataLoader(validation_dataset, batch_size = 64)
     
     return train_dataloader, test_dataloader, validation_dataloader
+    
             
 def construct_classifier(device, arch, hidden_units, learning_rate):
-    device = torch.device("cuda" if torch.cuda.is_available() and device =='GPU' else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and device =='gpu' else "cpu")
     
     #Make sure to make a conditional statement to check for 2 different models
     if arch == 'vgg16':
@@ -75,6 +78,7 @@ def construct_classifier(device, arch, hidden_units, learning_rate):
         model.classifier = classifier
         criterion = nn.NLLLoss()
         optimizer = optim.Adam(model.classifier.parameters(), learning_rate)
+    return model
     
 def train_classifier(epochs,train_dataloader, device, model, validation_dataloader):
     steps = 0 
@@ -124,11 +128,19 @@ def test_classifier(model, device, test_dataloader):
     
 def main():
     args = get_input_args()
-    data_dir = 'flowers'
+    data_dir = args.data_dir
+    device = args.gpu
+    epochs = args.epochs
+    learning_rate = args.learning_rate
+    hidden_units = args.hidden_units
+    arch = args.arch
     load_data(data_dir)
     construct_classifier(device, arch, hidden_units, learning_rate) #Need the other default args
-    train_classifier(epochs, train_dataloader, device, model, validation_dataloader) #device remains undefined, where should I define it with the GPU default arg?
+    #import pdb; pdb.set_trace()
+    train_classifier(epochs, train_dataloader, device, model, validation_dataloader) 
     test_classifier(model, device, test_dataloader)
     print ('Test Run')
+if __name__ == "__main__":
+    main()
     
     
