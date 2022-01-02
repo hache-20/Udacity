@@ -14,24 +14,29 @@ import numpy as np
 def get_input_args():
     '''Defines the arguments available to call the script predict.py'''
     parser = argparse.ArgumentParser('Arguments for the predict.py script')
-    parser.add_argument('--GPU', type= bool, default=True, help='True for predicting with a GPU, False for training with just the CPU, defaults to True.')
-    parser.add_argument('--img_path', type= str, default='"flowers/test/20/image_04912.jpg"', help='Directory for data to be used to test our network, defaults to the flowers test directory.')
-    parser.add_argument('--top_k', type= int, default=5, help='Used for calculating the top k probabilities of a given image, defaults to the top 5')
+    parser.add_argument('--gpu', type= str, default='cuda', help='cuda for training with a GPU, else for training with just the CPU, defaults to cuda.')
+    parser.add_argument('--img_path', type= str, default='"flowers/test/22/image_05360.jpg"', help='Directory for data to be used to test our network, defaults to image 05360 the flowers test directory.')
+    parser.add_argument('--top_k', type= int, default=5, help='Used for calculating the top k probabilities of a given image when attempting to predict an image class, defaults to the top 5')
+    parser.add_argument('--arch', type= str, default='vgg16', help='Architecture for Classifier model, defaults to VGG16')
     args = parser.parse_args()
     return args
 
-def load_checkpoint(filepath):
-    checkpoint =  torch.load(filepath)
-    model = models.vgg16(pretrained = True)
+def load_checkpoint(model_checkpoint, arch):
+    checkpoint =  torch.load(model_checkpoint)
+    if arch == 'vgg16':
+        model = models.vgg16(pretrained = True)
+    else:
+        model = models.resnet18(pretrained = True)  
     for param in model.parameters():
         param.required_grad = False
-    model.classifier = model_checkpoint['classifier']    
+    model.classifier = model_checkpoint['classifier']
     model.class_to_idx = model_checkpoint['class_to_idx']
     #model.state_dict = model_checkpoint['state_dict']
     model.load_state_dict(model_checkpoint['state_dict'])
     optimizer.load_state_dict(model_checkpoint['optimizer'])
     
     return optimizer, model
+
 def process_image(image):
     ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
         returns an Numpy array
@@ -52,7 +57,7 @@ def predict(device, img_path, model, top_k):
     ''' Predict the class (or classes) of an image using a trained deep learning model.
     '''
     # TODO: Implement the code to predict the class from an image file
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and device =='gpu' else "cpu") 
     model.to(device)
     model.eval()
     image = process_image(image_path)
@@ -70,8 +75,15 @@ def predict(device, img_path, model, top_k):
 
 def main(): #populate
     args = get_input_args()
+    device = args.gpu
+    arch = args.arch
+    top_k = args.top_k
+    filepath = 'checkpoint.pth'
     with open('cat_to_name.json', 'r') as f:
         cat_to_name = json.load(f)
-    model = load_checkpoint(checkpoint)
-    probs, classes = predict(img_path,model)
+    model = load_checkpoint(filepath, arch)
+    probs, classes = predict(device, img_path, model, top_k)
     print(probs, classes)
+    
+if __name__ == "__main__":
+    main()
