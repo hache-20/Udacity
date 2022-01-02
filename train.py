@@ -1,5 +1,4 @@
 import argparse
-import matplotlib.pyplot as plt
 import torch
 from torch import nn
 from torch import optim
@@ -12,7 +11,6 @@ def get_input_args():
     '''Defines the arguments available to call the script train.py'''
     parser = argparse.ArgumentParser('Arguments for the test.py script')
     #parser.add_argument('--gpu', type= bool, default=True, help='True for training with a GPU, False for training with just the CPU, defaults to True.')
-
     parser.add_argument('--gpu', type= str, default='cuda', help='True for training with a GPU, False for training with just the CPU, defaults to True.')
     parser.add_argument('--data_dir', type= str, default='flowers', required = True, help='Directory for data to be used to train our network, defaults to the flowers directory.')
     parser.add_argument('--epochs', type= int, default=3, help='Number of epochs to train our model, defaults to 3.')
@@ -69,7 +67,7 @@ def construct_classifier(device, arch, hidden_units, learning_rate):
             ('Dropout1', nn.Dropout(p=0.2)),
             ('fc2', nn.Linear(4096, hidden_units)),
             ('Dropout2', nn.Dropout(p=0.2)), 
-            ('fc3', nn.Linear(512,102)),
+            ('fc3', nn.Linear(hidden_units,102)),
             ('Dropout3', nn.Dropout(p=0.2)), 
             ('output', nn.LogSoftmax(dim =1))
             ]))
@@ -107,12 +105,12 @@ def train_classifier(epochs,train_dataloader, device, model, criterion, optimize
                         top_p, top_class = ps.topk(1, dim = 1)
                         equals = top_class == labels.view(*top_class.shape)
                         accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
-                '''
+                
                 print("Epoch: {}/{}.. ".format(epoch+1, epochs),
                       "Train Loss: {:.3f}.. ".format(running_loss/print_every),
                       "Test Loss: {:.3f}.. ".format(test_loss/len(validation_dataloader)),
                       "Test accuracy: {:.3f}".format(accuracy/len(validation_dataloader)))
-                      '''
+                      
                 running_loss = 0
                 model.train()
 def test_classifier(model, device, criterion, optimizer, test_dataloader, train_dataset, epochs):
@@ -131,14 +129,14 @@ def test_classifier(model, device, criterion, optimizer, test_dataloader, train_
             top_p, top_class = ps.topk(1, dim = 1)
             equals = top_class == labels_2.view(*top_class.shape)
             test_accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
-        print("Test accuracy: {:.3f}".format(test_accuracy/len(test_dataloader)))
+        print("Here's your model's test accuracy: {:.3f}".format(test_accuracy/len(test_dataloader)))
     # TODO: Save the checkpoint 
     model.class_to_idx = train_dataset.class_to_idx
     model_checkpoint = {'epochs':epochs,
-                    'state_dict': model.state_dict(),
-                    'class_to_idx':model.class_to_idx,
-                    'optimizer':optimizer.state_dict(),
-                    'classifier':model.classifier}
+                        'state_dict': model.state_dict(),
+                        'class_to_idx':model.class_to_idx,
+                        'optimizer':optimizer.state_dict(),
+                        'classifier':model.classifier}
     torch.save(model_checkpoint, 'checkpoint.pth')
     
 def main():
@@ -150,13 +148,13 @@ def main():
     hidden_units = args.hidden_units
     arch = args.arch
     train_dataloader, validation_dataloader, test_dataloader, train_dataset = load_data(data_dir)
+    print("Constructing Classifier...")
     model, criterion, optimizer = construct_classifier(device, arch, hidden_units, learning_rate)
     #DONT FORGET TO UNCOMMENT TRAINING PROGRES BEFORE FINAL SUBMISSION
-    train_classifier(epochs, train_dataloader, device, model, criterion, optimizer, validation_dataloader) 
+    print("Training Classifier, please wait as this process can be lengthy...\n")
+    train_classifier(epochs, train_dataloader, device, model, criterion, optimizer, validation_dataloader)
+    print("Training Complete! Now we'll test our classifier...")
     test_classifier(model, device, criterion, optimizer, test_dataloader, train_dataset, epochs)
+    Print ("Success!")
 if __name__ == "__main__":
     main()
-    
-    
-
-    
